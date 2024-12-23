@@ -1,0 +1,75 @@
+paddler(bob, carol, Paddler, Not_paddler) :- Paddler = bob, Not_paddler = carol.
+paddler(bob, Other, Paddler, Not_paddler) :- Other \= alice, Paddler = Other, Not_paddler = bob.
+paddler(alice, Other, Paddler, Not_paddler) :- Other \= bob, Paddler = Other, Not_paddler = alice.
+paddler(carol, bob, Paddler, Not_paddler) :- Paddler = bob, Not_paddler = carol.
+paddler(Other, bob, Paddler, Not_paddler) :- Other \= alice, Paddler = Other, Not_paddler = bob.
+paddler(Other, alice, Paddler, Not_paddler) :- Other \= bob, Paddler = Other, Not_paddler = alice.
+paddler(X, Y, Paddler, Not_paddler) :- X \= bob, X \= alice, Y \= bob, Y \= alice, Paddler = X, Not_paddler = Y.
+paddler(X, Y, Paddler, Not_paddler) :- X \= bob, X \= alice, Y \= bob, Y \= alice, Paddler = Y, Not_paddler = X.
+
+select([H|T], Choice, Rest) :- Choice = H, Rest = T.
+select([H|T], Choice, Rest) :- select(T, Choice, RestN), Rest = [H|RestN].
+
+selectTwo([H|T], Choice1, Choice2, Rest) :- Choice1 = H, select(T, Choice2, Rest).
+selectTwo([H|T], Choice1, Choice2, Rest) :- selectTwo(T, Choice1, Choice2, RestN), Rest = [H|RestN].
+
+remove(_, [], NewNonPaddleList) :- NewNonPaddleList = [].
+remove(Paddler, [Paddler|NonPaddleList], NewNonPaddleList) :- NewNonPaddleList = NonPaddleList.
+remove(Paddler, [Other|NonPaddleList], NewNonPaddleList) :- Other \= Paddler, 
+    remove(Paddler, NonPaddleList, NewNonPaddleList1), 
+    NewNonPaddleList = [Other|NewNonPaddleList1].
+
+add(X, [], NewList) :- NewList = [X].
+add(X, [X|T], NewList) :- NewList = [X|T].
+add(X, [H|T], NewList) :- H \= T, add(X, T, NewListN), NewList = [H|NewListN].
+
+paddleList([], X) :- X = [].
+paddleList([[H]|T], X) :- paddleList(T, XN), X = [H|XN].
+paddleList([[H1, _]|T], X) :- paddleList(T, XN), X = [H1|XN].
+
+count([], _, 0).
+count([P|T], P, N) :- count(T, P, N1), N is N1 + 1.
+count([H|T], P, N) :- H \= P, count(T, P, N).
+
+twice([], TwiceList) :- TwiceList = [].
+twice([H|T], TwiceList) :- 
+    count([H|T], H, N),
+    N >= 2,
+    twice(T, TwiceListN),
+    add(H, TwiceListN, TwiceList).
+twice([H|T], TwiceList) :- 
+    count([H|T], H, N),
+    N < 2,
+    twice(T, TwiceListN),
+    TwiceList = TwiceListN.
+
+printPaddler([]).
+printPaddler([[H]|T]) :- write(H), write(' paddles back.'), nl, printPaddler(T).
+printPaddler([[H1, H2]|T]) :- write(H1), write(' paddles and '), write(H2), write(' comes along.'), nl, printPaddler(T).
+
+printTwice([]).
+printTwice([H]) :- write(H), write('.'), nl.
+printTwice([H|T]) :- write(H), write(', '), printTwice(T).
+
+changeState([], _, right, WriteList, NonPaddleList) :-
+    NonPaddleList == [],
+    paddleList(WriteList, PaddleList),
+    printPaddler(WriteList), write('The one who paddles twice is: '),
+    twice(PaddleList, TwicePaddle), printTwice(TwicePaddle).
+
+changeState(Left, Right, left, WriteList, NonPaddleList) :-
+    Left \= [],
+    selectTwo(Left, Choice1, Choice2, LeftRestRest),
+    paddler(Choice1, Choice2, Paddler, Not_paddler),
+    remove(Paddler, NonPaddleList, NewNonPaddleList),
+    NewWriteList = [[Paddler, Not_paddler]|WriteList],
+    changeState(LeftRestRest, [Not_paddler, Paddler|Right], right, NewWriteList, NewNonPaddleList).
+
+changeState(Left, Right, right, WriteList, NonPaddleList) :-
+    Left \= [],
+    select(Right, Paddler, RestRight),
+    remove(Paddler, NonPaddleList, NewNonPaddleList),
+    NewWriteList = [[Paddler]|WriteList],
+    changeState([Paddler|Left], RestRight, left, NewWriteList, NewNonPaddleList).
+
+abcd() :- changeState([alice, bob, carol, davis], [], left,  [], [alice, bob, carol, davis]).

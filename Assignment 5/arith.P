@@ -1,0 +1,10 @@
+arith([X|Xs]) :- eval(Xs, X, 0, 0, FinalN), write([+,X|FinalN]).
+arith([X|Xs]) :- eval(Xs, -X, 0, 0, FinalN), write([-,X|FinalN]).
+
+eval([], _, _, 0, Final) :- Final = [], fail.
+eval([], Left, Right, 1, Final) :- Left =:= Right, Final = [].
+eval([X|Xs], Left, 0, 0, Final) :- LeftN is Left + X, eval(Xs, LeftN, 0, 0, FinalN), Final = [+,X|FinalN].
+eval([X|Xs], Left, 0, 0, Final) :- LeftN is Left - X, eval(Xs, LeftN, 0, 0, FinalN), Final = [-,X|FinalN].
+eval([X|Xs], Left, 0, 0, Final) :- eval([X|Xs], Left, 0, 1, FinalN), Final = [=|FinalN].
+eval([X|Xs], Left, Right, 1, Final) :- RightN is Right + X, eval(Xs, Left, RightN, 1, FinalN), Final = [+, X|FinalN].
+eval([X|Xs], Left, Right, 1, Final) :- RightN is Right - X, eval(Xs, Left, RightN, 1, FinalN), Final = [-, X|FinalN].

@@ -1,0 +1,6 @@
+count_occurences(_, [], 0).
+count_occurences(X, [X|Xs], N) :- count_occurences(X, Xs, N1), N is N1 + 1.
+count_occurences(X, [Y|Xs], N) :- X \= Y, count_occurences(X, Xs, N).
+
+has_no_triplicates([]).
+has_no_triplicates([X|Xs]) :- count_occurences(X, [X|Xs], N), N < 3, has_no_triplicates(Xs).

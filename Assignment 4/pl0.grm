@@ -1,0 +1,97 @@
+fun assignType(basictype : Datatypes.basictype, []) = []
+| assignType(basicType : Datatypes.basictype, (id::ids)) = (id, basicType)::assignType(basicType, ids);
+
+
+%%
+
+%name pl0
+%eop EOF
+%noshift EOF
+
+(* %pos declares the type of positions for terminals.
+   Each symbol has an associated left and right position. *)
+
+%pos int
+
+%left EQUAL NOTEQUAL LESS GREATER LESSEQUAL GREATEREQUAL
+
+%left INTSUB INTPLUS
+%left INTMUL INTDIV INTMOD
+
+%left RATSUB RATPLUS
+%left RATMUL RATDIV
+%left MINUS INVERSE
+
+%left BOOLAND BOOLOR
+%right BOOLNOT
+
+%term EOF | LBRACE| RBRACE | SEMI | COMMA | LPAREN | RPAREN | ASSIGN | CALL | READ | PRINT | IF | THEN | ELSE | FI | WHILE | DO | OD | 
+      MINUS | INVERSE | RATPLUS | RATSUB | RATMUL | RATDIV | INTPLUS | INTSUB | INTMUL | INTDIV | INTMOD | EQUAL | NOTEQUAL | RAT |
+      LESS | GREATER | LESSEQUAL | GREATEREQUAL | BOOLAND | BOOLOR | BOOLNOT | RATVAR | INTVAR | BOOLVAR | PROCEDURE | MAKERAT | FROMDECIMAL |
+      RATIONAL of Rational.rational | INTEGER of BigInt.bigint | BOOLEAN of bool | IDENT of Datatypes.ident
+%nonterm PROGRAM of Datatypes.block | BLOCK of Datatypes.block | DECLSEQ of Datatypes.declarationSeq
+         | VARDECLS of Datatypes.varDecls | RATVARDECL of (Datatypes.ident*Datatypes.basictype) list | INTVARDECL of (Datatypes.ident*Datatypes.basictype) list
+         | BOOLVARDECL of (Datatypes.ident*Datatypes.basictype) list | IDENTLIST of Datatypes.ident list | PROCDECLS of Datatypes.procDef list
+         | PROCDEF of Datatypes.procDef | COMSEQ of Datatypes.commandSeq | COMMANDS of Datatypes.command list
+         | COMMAND of Datatypes.command | ASSIGNCMD of Datatypes.command | CALLCMD of Datatypes.command 
+         | READCMD of Datatypes.command | PRINTCMD of Datatypes.command | IFCMD of Datatypes.command
+         | WHILECMD of Datatypes.command | EXPRESSION of Datatypes.expression
+
+%nodefault
+%verbose
+%arg (filename) : string
+
+%%
+
+PROGRAM : BLOCK (BLOCK)
+BLOCK : DECLSEQ COMSEQ (Datatypes.Block(DECLSEQ, COMSEQ))
+DECLSEQ : VARDECLS PROCDECLS (Datatypes.DeclSeq (VARDECLS , Datatypes.ProcDecls(PROCDECLS)))
+VARDECLS : RATVARDECL INTVARDECL BOOLVARDECL (Datatypes.VarDecls(RATVARDECL @ INTVARDECL @ BOOLVARDECL))
+RATVARDECL : ([]) | RATVAR IDENT IDENTLIST SEMI (assignType(Datatypes.rational, IDENT::IDENTLIST))
+INTVARDECL : ([]) | INTVAR IDENT IDENTLIST SEMI (assignType(Datatypes.integer, IDENT::IDENTLIST))
+BOOLVARDECL : ([]) | BOOLVAR IDENT IDENTLIST SEMI (assignType(Datatypes.boolean, IDENT::IDENTLIST))
+IDENTLIST : ([]) | COMMA IDENT IDENTLIST (IDENT::IDENTLIST)
+PROCDECLS : ([]) | PROCDEF PROCDECLS (PROCDEF::PROCDECLS)
+PROCDEF : PROCEDURE IDENT BLOCK SEMI (Datatypes.ProcDef(IDENT, BLOCK))
+COMSEQ : (Datatypes.CommandSeq([])) | LBRACE COMMANDS RBRACE (Datatypes.CommandSeq(COMMANDS))
+COMMANDS : ([]) | COMMAND SEMI COMMANDS (COMMAND::COMMANDS)
+COMMAND : ASSIGNCMD (ASSIGNCMD)
+         | CALLCMD (CALLCMD)
+         | READCMD (READCMD)
+         | PRINTCMD (PRINTCMD)
+         | IFCMD  (IFCMD)
+         | WHILECMD (WHILECMD)
+ASSIGNCMD : IDENT ASSIGN EXPRESSION (Datatypes.AssignmentCmd(IDENT,EXPRESSION))
+CALLCMD : CALL IDENT (Datatypes.CallCmd(IDENT))
+READCMD : READ LPAREN IDENT RPAREN (Datatypes.ReadCmd(IDENT))
+PRINTCMD : PRINT LPAREN EXPRESSION RPAREN (Datatypes.PrintCmd(EXPRESSION))
+IFCMD : IF EXPRESSION THEN COMSEQ ELSE COMSEQ FI (Datatypes.ConditionalCmd(EXPRESSION, COMSEQ1, COMSEQ2))
+WHILECMD : WHILE EXPRESSION DO COMSEQ OD (Datatypes.WhileCmd(EXPRESSION, COMSEQ))
+EXPRESSION : RATIONAL (Datatypes.Rat(RATIONAL))
+            | INTEGER (Datatypes.Int(INTEGER))
+            | BOOLEAN (Datatypes.Bool(BOOLEAN))
+            | IDENT (Datatypes.Ident(IDENT))
+            | EXPRESSION RATPLUS EXPRESSION (Datatypes.Binop(EXPRESSION1, Datatypes.RatAdd, EXPRESSION2))
+            | EXPRESSION RATSUB EXPRESSION (Datatypes.Binop(EXPRESSION1, Datatypes.RatSub, EXPRESSION2))
+            | EXPRESSION RATMUL EXPRESSION (Datatypes.Binop(EXPRESSION1, Datatypes.RatMul, EXPRESSION2))
+            | EXPRESSION RATDIV EXPRESSION (Datatypes.Binop(EXPRESSION1, Datatypes.RatDiv, EXPRESSION2))
+            | EXPRESSION INTPLUS EXPRESSION (Datatypes.Binop(EXPRESSION1, Datatypes.IntAdd, EXPRESSION2))
+            | EXPRESSION INTSUB EXPRESSION (Datatypes.Binop(EXPRESSION1, Datatypes.IntSub, EXPRESSION2))
+            | EXPRESSION INTMUL EXPRESSION (Datatypes.Binop(EXPRESSION1, Datatypes.IntMul, EXPRESSION2))
+            | EXPRESSION INTDIV EXPRESSION (Datatypes.Binop(EXPRESSION1, Datatypes.IntDiv, EXPRESSION2))
+            | EXPRESSION INTMOD EXPRESSION (Datatypes.Binop(EXPRESSION1, Datatypes.IntMod, EXPRESSION2))
+            | EXPRESSION BOOLAND EXPRESSION (Datatypes.Binop(EXPRESSION1, Datatypes.And, EXPRESSION2))
+            | EXPRESSION BOOLOR EXPRESSION (Datatypes.Binop(EXPRESSION1, Datatypes.Or, EXPRESSION2))
+            | MINUS EXPRESSION (Datatypes.Uniop(Datatypes.Negate, EXPRESSION))
+            | INVERSE EXPRESSION (Datatypes.Uniop(Datatypes.Inverse, EXPRESSION))
+            | BOOLNOT EXPRESSION (Datatypes.Uniop(Datatypes.Not, EXPRESSION))
+            | EXPRESSION EQUAL EXPRESSION (Datatypes.Relop(EXPRESSION1, Datatypes.Equal, EXPRESSION2))
+            | EXPRESSION NOTEQUAL EXPRESSION (Datatypes.Relop(EXPRESSION1, Datatypes.NotEqual, EXPRESSION2))
+            | EXPRESSION LESS EXPRESSION (Datatypes.Relop(EXPRESSION1, Datatypes.Less, EXPRESSION2))
+            | EXPRESSION GREATER EXPRESSION (Datatypes.Relop(EXPRESSION1, Datatypes.Greater, EXPRESSION2))
+            | EXPRESSION LESSEQUAL EXPRESSION (Datatypes.Relop(EXPRESSION1, Datatypes.LessEq, EXPRESSION2))
+            | EXPRESSION GREATEREQUAL EXPRESSION (Datatypes.Relop(EXPRESSION1, Datatypes.GreaterEq, EXPRESSION2))
+            | LPAREN EXPRESSION RPAREN (EXPRESSION)
+            | MAKERAT LPAREN EXPRESSION COMMA EXPRESSION RPAREN (Datatypes.Binop(EXPRESSION1, Datatypes.MakeRat, EXPRESSION2))
+            | RAT LPAREN EXPRESSION RPAREN (Datatypes.Uniop(Datatypes.ToRat, EXPRESSION))
+            | FROMDECIMAL LPAREN RATIONAL RPAREN (Datatypes.Rat(RATIONAL))

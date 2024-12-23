@@ -1,0 +1,39 @@
+(* Sample interactive calculator for ML-Yacc *)
+
+
+
+%%
+
+%eop EOF SEMI
+
+(* %pos declares the type of positions for terminals.
+   Each symbol has an associated left and right position. *)
+
+%pos int
+
+%left SUB PLUS
+%left TIMES DIV
+
+%term NUM of Rational.rational | PLUS | TIMES |
+      SEMI | EOF | DIV | SUB | LPAREN | RPAREN
+%nonterm EXP of Rational.rational | START of Rational.rational
+
+%name Calc
+
+%prefer PLUS TIMES DIV SUB
+%keyword SEMI
+
+%noshift EOF
+%nodefault
+%verbose
+%%
+
+(* the parser returns the value associated with the expression *)
+
+  START : EXP (EXP1)
+  EXP : NUM             (NUM)
+      | EXP PLUS EXP    (Rational.add(EXP1,EXP2))
+      | EXP TIMES EXP   (Rational.multiply(EXP1,EXP2))
+      | EXP DIV EXP     (valOf(Rational.divide(EXP1, EXP2)))
+      | EXP SUB EXP     (Rational.subtract(EXP1, EXP2))
+      | LPAREN EXP RPAREN (EXP1)
